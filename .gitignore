@@ -1,0 +1,14 @@
+# No patient data, ever. Anything derived from MIMIC-IV-ED or MC-MED stays outside the repository.
+results/*
+!results/README.md
+data/
+*.csv
+*.csv.gz
+*.parquet
+*.npy
+*.pkl
+*.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
