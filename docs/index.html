@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ESRP Score Calculator</title>
+<meta name="description" content="Emergency Sepsis Risk Prediction (ESRP) score: nine triage variables, four risk tiers. Research tool; not for clinical use.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: inputs on the left in the order a triage nurse records them; the running total on the right, sticky on wide screens. */
+:root {
+  --bg: #f6f7f9; --paper: #ffffff; --fg: #1b2430; --muted: #5b6676; --line: #d9dee6;
+  --accent: #0b5d6b; --accent-ink: #ffffff;
+  --tier-low: #2f8f5b; --tier-mod: #b8860b; --tier-high: #d2691e; --tier-vhigh: #b22222;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121820; --paper: #1a222c; --fg: #e8ecf1; --muted: #9aa6b5; --line: #2d3845;
+  --accent: #4fb3c2; --accent-ink: #0b1a1e;
+  --tier-low: #5cc28a; --tier-mod: #e0b341; --tier-high: #f08a4b; --tier-vhigh: #ef6b6b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121820; --paper: #1a222c; --fg: #e8ecf1; --muted: #9aa6b5; --line: #2d3845;
+  --accent: #4fb3c2; --accent-ink: #0b1a1e;
+  --tier-low: #5cc28a; --tier-mod: #e0b341; --tier-high: #f08a4b; --tier-vhigh: #ef6b6b; color-scheme: dark }
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+main { max-width: 980px; margin: 0 auto }
+header h1 { font-size: 1.6rem; font-weight: 600; margin: 0 0 4px; text-wrap: balance }
+header p { margin: 0; color: var(--muted); max-width: 65ch }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; margin-top: 24px; align-items: start }
+@media (max-width: 720px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+fieldset { border: 0; padding: 0; margin: 0 }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 8px }
+.inputs { padding: 8px 20px }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 128px 56px; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line) }
+.row:last-child { border-bottom: 0 }
+.row label { font-weight: 500 }
+.row small { display: block; color: var(--muted); font-weight: 400; font-size: .85em }
+.row input[type=number] { width: 100%; font: 15px var(--mono); padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); font-variant-numeric: tabular-nums }
+.row input:focus { outline: 2px solid var(--accent); outline-offset: 1px }
+.pts { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; color: var(--muted) }
+.pts.on { color: var(--fg); font-weight: 500 }
+.switch { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden }
+.switch button { font: inherit; padding: 6px 0; width: 50%; background: var(--bg); color: var(--fg); border: 0; cursor: pointer }
+.switch button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink) }
+.switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px }
+.result { padding: 20px; position: sticky; top: 16px }
+.total { display: flex; align-items: baseline; gap: 10px }
+.total b { font: 500 3rem/1 var(--mono); font-variant-numeric: tabular-nums }
+.total span { color: var(--muted) }
+.tier { display: inline-block; margin-top: 12px; padding: 4px 12px; border-radius: 999px; color: #fff; font-weight: 600; letter-spacing: .02em }
+.scale { display: grid; grid-template-columns: 21fr 10fr 14fr 56fr; gap: 2px; margin-top: 16px; height: 8px }
+.scale i { display: block; border-radius: 2px; opacity: .35 }
+.scale i.on { opacity: 1 }
+.ticks { display: flex; justify-content: space-between; font: 12px var(--mono); color: var(--muted); margin-top: 4px }
+dl { margin: 16px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: .95em }
+dt { color: var(--muted) } dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums }
+.note { font-size: .85em; color: var(--muted); margin-top: 16px }
+.warn { margin-top: 24px; padding: 12px 16px; border-left: 3px solid var(--accent); background: var(--paper); font-size: .95em }
+footer { margin-top: 32px; font-size: .85em; color: var(--muted) }
+footer a { color: var(--accent) }
+@media (prefers-reduced-motion: no-preference) { .total b { transition: color .2s } }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>ESRP Score Calculator</h1>
+  <p>Emergency Sepsis Risk Prediction score: nine variables recorded at ED triage, no laboratory test. Enter the first triage values; the points and risk tier update as you type.</p>
+</header>
+
+<div class="grid">
+<form class="card inputs" id="form" autocomplete="off">
+<fieldset>
+  <div class="row"><label for="age">Age <small>years</small></label><input type="number" id="age" min="18" max="120" step="1" value="64"><output class="pts" id="p-age">—</output></div>
+  <div class="row"><label for="hr">Heart rate <small>beats/min</small></label><input type="number" id="hr" min="0" max="300" step="1" value="104"><output class="pts" id="p-hr">—</output></div>
+  <div class="row"><label for="sbp">Systolic blood pressure <small>mm Hg</small></label><input type="number" id="sbp" min="0" max="320" step="1" value="112"><output class="pts" id="p-sbp">—</output></div>
+  <div class="row"><label for="dbp">Diastolic blood pressure <small>mm Hg</small></label><input type="number" id="dbp" min="0" max="250" step="1" value="68"><output class="pts" id="p-dbp">—</output></div>
+  <div class="row"><label for="spo2">Oxygen saturation <small>%, pulse oximetry</small></label><input type="number" id="spo2" min="0" max="100" step="1" value="95"><output class="pts" id="p-spo2">—</output></div>
+  <div class="row"><label for="rr">Respiratory rate <small>breaths/min</small></label><input type="number" id="rr" min="0" max="80" step="1" value="20"><output class="pts" id="p-rr">—</output></div>
+  <div class="row"><span id="l-fever">Chief complaint of fever or chills</span>
+    <div class="switch" role="group" aria-labelledby="l-fever"><button type="button" id="fever-no" aria-pressed="true" data-k="fever" data-v="0">No</button><button type="button" id="fever-yes" aria-pressed="false" data-k="fever" data-v="1">Yes</button></div><output class="pts" id="p-fever">—</output></div>
+  <div class="row"><span id="l-hosp">Two or more hospitalisations <small>in the previous 365 days</small></span>
+    <div class="switch" role="group" aria-labelledby="l-hosp"><button type="button" id="hosp-no" aria-pressed="true" data-k="hosp" data-v="0">No</button><button type="button" id="hosp-yes" aria-pressed="false" data-k="hosp" data-v="1">Yes</button></div><output class="pts" id="p-hosp">—</output></div>
+  <div class="row"><span id="l-fe">Coded fluid or electrolyte disorder <small>Elixhauser, previous five years</small></span>
+    <div class="switch" role="group" aria-labelledby="l-fe"><button type="button" id="fe-no" aria-pressed="true" data-k="fe" data-v="0">No</button><button type="button" id="fe-yes" aria-pressed="false" data-k="fe" data-v="1">Yes</button></div><output class="pts" id="p-fe">—</output></div>
+</fieldset>
+</form>
+
+<aside class="card result" aria-live="polite">
+  <div class="total"><b id="total">—</b><span>of 100 points</span></div>
+  <div><span class="tier" id="tier">—</span></div>
+  <div class="scale" aria-hidden="true"><i id="s1" style="background:var(--tier-low)"></i><i id="s2" style="background:var(--tier-mod)"></i><i id="s3" style="background:var(--tier-high)"></i><i id="s4" style="background:var(--tier-vhigh)"></i></div>
+  <div class="ticks" aria-hidden="true"><span>0</span><span>21</span><span>31</span><span>45</span><span>100</span></div>
+  <dl>
+    <dt>Low</dt><dd>0 to 20</dd>
+    <dt>Moderate</dt><dd>21 to 30</dd>
+    <dt>High</dt><dd>31 to 44</dd>
+    <dt>Very high</dt><dd>45 or above</dd>
+  </dl>
+  <dl>
+    <dt>Predicted probability</dt><dd id="prob">—</dd>
+  </dl>
+  <p class="note">The probability comes from the logistic mapping fitted in the derivation cohort; it under-predicted absolute risk at both external sites and should be re-estimated locally before use. The tier is the intended output.</p>
+</aside>
+</div>
+
+<div class="warn"><strong>Research tool, not for clinical use.</strong> The ESRP score was derived and validated retrospectively. It has not been evaluated prospectively and no clinician acted on it in any study. A tier describes a level of risk and does not exclude sepsis.</div>
+
+<footer>
+  Scoring table and probability mapping from Table 2 of <em>Development and external validation of an interpretable machine learning score for early sepsis identification in the emergency department</em> (eClinicalMedicine, in revision). Code: <a href="https://github.com/fengx13/ESRP-sepsis">github.com/fengx13/ESRP-sepsis</a>. Nothing you enter leaves this page.
+</footer>
+</main>
+
+<script>
+// Table 2, verbatim. [lo, hi) intervals; null = unbounded.
+const POINTS = {
+  hr:   [[null, 90, 0], [90, 110, 3], [110, null, 6]],
+  sbp:  [[null, 90, 14], [90, 180, 3], [180, null, 0]],
+  age:  [[18, 30, 0], [30, 70, 9], [70, null, 14]],
+  dbp:  [[null, 60, 11], [60, 90, 6], [90, null, 0]],
+  spo2: [[null, 94, 11], [94, 99, 3], [99, null, 0]],
+  rr:   [[null, 18, 0], [18, 22, 3], [22, null, 9]],
+};
+const BINARY = { fever: 20, hosp: 6, fe: 9 };
+const INTERCEPT = -7.2541, SLOPE = 0.111705;
+const flags = { fever: 0, hosp: 0, fe: 0 };
+
+function points(key, v) {
+  if (!Number.isFinite(v)) return null;
+  for (const [lo, hi, p] of POINTS[key]) if ((lo === null || v >= lo) && (hi === null || v < hi)) return p;
+  return null;
+}
+function tier(s) { return s < 21 ? ["Low risk", "--tier-low", "s1"] : s < 31 ? ["Moderate risk", "--tier-mod", "s2"] : s < 45 ? ["High risk", "--tier-high", "s3"] : ["Very high risk", "--tier-vhigh", "s4"]; }
+function update() {
+  let total = 0, complete = true;
+  for (const key of Object.keys(POINTS)) {
+    const el = document.getElementById(key), out = document.getElementById("p-" + key);
+    const p = points(key, el.valueAsNumber);
+    out.textContent = p === null ? "—" : "+" + p; out.classList.toggle("on", p !== null && p > 0);
+    el.setAttribute("aria-invalid", p === null ? "true" : "false");
+    if (p === null) complete = false; else total += p;
+  }
+  for (const key of Object.keys(BINARY)) {
+    const p = flags[key] ? BINARY[key] : 0, out = document.getElementById("p-" + key);
+    out.textContent = "+" + p; out.classList.toggle("on", p > 0); total += p;
+  }
+  const T = document.getElementById("total"), tierEl = document.getElementById("tier"), prob = document.getElementById("prob");
+  ["s1", "s2", "s3", "s4"].forEach(id => document.getElementById(id).classList.remove("on"));
+  if (!complete) { T.textContent = "—"; tierEl.textContent = "Enter all six measurements"; tierEl.style.background = "var(--muted)"; prob.textContent = "—"; return; }
+  const [name, color, seg] = tier(total);
+  T.textContent = total; tierEl.textContent = name; tierEl.style.background = "var(" + color + ")";
+  document.getElementById(seg).classList.add("on");
+  const p = 1 / (1 + Math.exp(-(INTERCEPT + SLOPE * total)));
+  prob.textContent = (100 * p).toFixed(p < 0.1 ? 2 : 1) + "%";
+}
+document.querySelectorAll(".switch button").forEach(b => b.addEventListener("click", () => {
+  flags[b.dataset.k] = +b.dataset.v;
+  b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  update();
+}));
+document.getElementById("form").addEventListener("input", update);
+document.getElementById("form").addEventListener("submit", e => e.preventDefault());
+update();
+</script>
+</body>
+</html>

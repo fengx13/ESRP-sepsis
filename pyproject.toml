@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "esrp"
+version = "0.1.0"
+description = "Emergency Sepsis Risk Prediction (ESRP) score: scoring, definitions and external validation code"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["numpy>=1.26", "pandas>=2.2", "scipy>=1.13"]
+
+[project.optional-dependencies]
+reproduce = ["scikit-learn>=1.5", "matplotlib>=3.8"]
+test = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["esrp", "esrp.cohorts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

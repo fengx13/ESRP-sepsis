@@ -1,0 +1,6 @@
+numpy>=1.26
+pandas>=2.2
+scipy>=1.13
+scikit-learn>=1.5  # models refitted within each cohort (notebooks/appendix_refitted.py)
+matplotlib>=3.8    # figures (notebooks/figures_external.py)
+pytest>=8          # tests
