@@ -1,5 +1,7 @@
 # ESRP — Emergency Sepsis Risk Prediction score
 
+**🧮 Online calculator: [fengx13.github.io/ESRP-sepsis](https://fengx13.github.io/ESRP-sepsis/)**
+
 ## Overview
 
 The Emergency Sepsis Risk Prediction (ESRP) score is an integer score computed from nine variables recorded at emergency department (ED) triage, without laboratory tests. It places adult ED patients in four ordered tiers of sepsis risk. It was derived in 2·5 million encounters at M Health Fairview (University of Minnesota, UMN) and validated without re-estimation at UMN and in two external cohorts: MIMIC-IV-ED (Beth Israel Deaconess Medical Center, BIDMC; 448,804 encounters) and MC-MED (Stanford Health Care; 118,385 encounters).
@@ -34,7 +36,7 @@ s = esrp_score({"age": 64, "heart_rate": 104, "systolic_bp": 112, "diastolic_bp"
 s, risk_tier(s), predicted_probability(s)   # 27, 'moderate', 0.0142
 ```
 
-An online calculator is in `docs/index.html` (served by GitHub Pages).
+The online calculator is at https://fengx13.github.io/ESRP-sepsis/ (source in `docs/index.html`).
 
 ## Installation
 
